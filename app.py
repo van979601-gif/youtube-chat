@@ -8,6 +8,12 @@ from collections import Counter
 import re
 
 # -----------------------------
+# matplotlib 한글 폰트 설정
+# -----------------------------
+plt.rcParams['font.family'] = 'NanumGothic'
+plt.rcParams['axes.unicode_minus'] = False
+
+# -----------------------------
 # Streamlit 기본 설정
 # -----------------------------
 st.set_page_config(
@@ -208,12 +214,15 @@ if st.button("댓글 수집 및 분석 시작"):
         "진짜", "너무", "정말"
     }
 
+    # -----------------------------
+    # 워드클라우드 생성
+    # -----------------------------
     wordcloud = WordCloud(
         width=1200,
         height=600,
         background_color="white",
         stopwords=stopwords,
-        font_path="NanumGothic.ttf"
+        font_path="./NanumGothic.ttf"
     ).generate(text_data)
 
     fig3, ax3 = plt.subplots(figsize=(15, 7))
