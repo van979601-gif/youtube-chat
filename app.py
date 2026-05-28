@@ -40,6 +40,7 @@ comment_limit = st.slider(
 # -----------------------------
 @st.cache_data
 def get_comments(video_url, limit):
+
     downloader = YoutubeCommentDownloader()
 
     comments = []
@@ -61,6 +62,25 @@ def get_comments(video_url, limit):
     return pd.DataFrame(comments)
 
 # -----------------------------
+# 좋아요 숫자 변환 함수
+# -----------------------------
+def convert_likes(x):
+
+    x = str(x).replace(",", "").upper()
+
+    if "K" in x:
+        return float(x.replace("K", "")) * 1000
+
+    elif "M" in x:
+        return float(x.replace("M", "")) * 1000000
+
+    try:
+        return float(x)
+
+    except:
+        return 0
+
+# -----------------------------
 # 분석 시작 버튼
 # -----------------------------
 if st.button("댓글 수집 및 분석 시작"):
@@ -73,6 +93,9 @@ if st.button("댓글 수집 및 분석 시작"):
 
         try:
             df = get_comments(video_url, comment_limit)
+
+            # 좋아요 숫자형 변환
+            df["likes"] = df["likes"].apply(convert_likes)
 
             if df.empty:
                 st.error("댓글을 가져오지 못했습니다.")
@@ -102,13 +125,29 @@ if st.button("댓글 수집 및 분석 시작"):
     col2.metric("최대 좋아요", int(df["likes"].max()))
     col3.metric("총 좋아요", int(df["likes"].sum()))
 
-    # 좋아요 분포 그래프
-    fig, ax = plt.subplots(figsize=(10, 4))
+    # -----------------------------
+    # 좋아요 TOP 댓글 그래프
+    # -----------------------------
+    st.subheader("🔥 좋아요 TOP 10 댓글")
 
-    sns.histplot(df["likes"], bins=30, kde=True, ax=ax)
+    top_likes = df.sort_values(
+        by="likes",
+        ascending=False
+    ).head(10)
 
-    ax.set_title("댓글 좋아요 수 분포")
+    fig, ax = plt.subplots(figsize=(12, 6))
+
+    sns.barplot(
+        data=top_likes,
+        x="likes",
+        y=top_likes["text"].str[:30],
+        palette="Reds_r",
+        ax=ax
+    )
+
+    ax.set_title("좋아요 TOP 10 댓글")
     ax.set_xlabel("좋아요 수")
+    ax.set_ylabel("댓글")
 
     st.pyplot(fig)
 
@@ -117,12 +156,10 @@ if st.button("댓글 수집 및 분석 시작"):
     # -----------------------------
     st.subheader("⏰ 시간대별 댓글 추이")
 
-    # time 문자열 전처리
     def extract_hour(time_str):
 
         if isinstance(time_str, str):
 
-            # 예: "3 hours ago"
             match = re.search(r'(\d+)\s+hour', time_str)
 
             if match:
@@ -161,7 +198,7 @@ if st.button("댓글 수집 및 분석 시작"):
 
     text_data = " ".join(df["text"].astype(str))
 
-    # 간단한 전처리
+    # 텍스트 전처리
     text_data = re.sub(r"http\S+", "", text_data)
     text_data = re.sub(r"[^가-힣a-zA-Z\s]", "", text_data)
 
@@ -176,7 +213,7 @@ if st.button("댓글 수집 및 분석 시작"):
         height=600,
         background_color="white",
         stopwords=stopwords,
-        font_path="malgun.ttf"  # 윈도우 한글 폰트
+        font_path="NanumGothic.ttf"
     ).generate(text_data)
 
     fig3, ax3 = plt.subplots(figsize=(15, 7))
