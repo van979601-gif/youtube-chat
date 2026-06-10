@@ -27,14 +27,17 @@ html, body, [class*="css"] {
 
 /* 배경 */
 .stApp {
-    background: #0f0f13;
-    color: #e8e8f0;
+    background: #f7f8fc;
+    color: #1a1a2e;
 }
 
 /* 사이드바 */
 [data-testid="stSidebar"] {
-    background: #17171f !important;
-    border-right: 1px solid #2a2a38;
+    background: #ffffff !important;
+    border-right: 1px solid #e4e6ef;
+}
+[data-testid="stSidebar"] * {
+    color: #2a2a40 !important;
 }
 
 /* 헤더 */
@@ -42,7 +45,7 @@ html, body, [class*="css"] {
     font-family: 'Space Grotesk', sans-serif;
     font-size: 2.4rem;
     font-weight: 700;
-    background: linear-gradient(135deg, #ff4e4e 0%, #ff9c4e 100%);
+    background: linear-gradient(135deg, #e8302a 0%, #ff7c2a 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -50,23 +53,24 @@ html, body, [class*="css"] {
 }
 
 .sub-header {
-    color: #7070a0;
+    color: #7878a0;
     font-size: 0.95rem;
     margin-bottom: 2rem;
 }
 
 /* 메트릭 카드 */
 .metric-card {
-    background: #1c1c28;
-    border: 1px solid #2a2a3e;
+    background: #ffffff;
+    border: 1px solid #e4e6ef;
     border-radius: 12px;
     padding: 1.2rem 1.4rem;
     margin-bottom: 0.8rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 .metric-label {
-    color: #7070a0;
+    color: #9090b0;
     font-size: 0.78rem;
-    font-weight: 500;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     margin-bottom: 0.4rem;
@@ -75,28 +79,29 @@ html, body, [class*="css"] {
     font-family: 'Space Grotesk', sans-serif;
     font-size: 1.9rem;
     font-weight: 700;
-    color: #f0f0ff;
+    color: #1a1a2e;
     line-height: 1.1;
 }
 .metric-sub {
-    color: #7070a0;
+    color: #9090b0;
     font-size: 0.78rem;
     margin-top: 0.3rem;
 }
 .metric-highlight {
-    color: #ff7c4e;
+    color: #e8302a;
 }
 
 /* 수익 범위 카드 */
 .revenue-range {
-    background: linear-gradient(135deg, #1e1530 0%, #1a2040 100%);
-    border: 1px solid #3a2a5e;
+    background: #ffffff;
+    border: 1px solid #e4e6ef;
     border-radius: 14px;
     padding: 1.6rem;
     text-align: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 .revenue-range .range-label {
-    color: #9070d0;
+    color: #9090b0;
     font-size: 0.8rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -110,7 +115,7 @@ html, body, [class*="css"] {
     line-height: 1;
 }
 .revenue-range .range-sub {
-    color: #7070a0;
+    color: #9090b0;
     font-size: 0.82rem;
     margin-top: 0.5rem;
 }
@@ -120,8 +125,8 @@ html, body, [class*="css"] {
     font-family: 'Space Grotesk', sans-serif;
     font-size: 1.1rem;
     font-weight: 600;
-    color: #c0c0e0;
-    border-left: 3px solid #ff4e4e;
+    color: #2a2a40;
+    border-left: 3px solid #e8302a;
     padding-left: 0.8rem;
     margin: 1.6rem 0 1rem 0;
 }
@@ -131,20 +136,21 @@ html, body, [class*="css"] {
     display: flex;
     align-items: center;
     gap: 1rem;
-    background: #1c1c28;
-    border: 1px solid #2a2a3e;
+    background: #ffffff;
+    border: 1px solid #e4e6ef;
     border-radius: 14px;
     padding: 1.2rem 1.6rem;
     margin-bottom: 1.4rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 .channel-name {
     font-family: 'Space Grotesk', sans-serif;
     font-size: 1.4rem;
     font-weight: 700;
-    color: #f0f0ff;
+    color: #1a1a2e;
 }
 .channel-desc {
-    color: #7070a0;
+    color: #7878a0;
     font-size: 0.84rem;
     margin-top: 0.2rem;
     line-height: 1.5;
@@ -152,19 +158,19 @@ html, body, [class*="css"] {
 
 /* 테이블 */
 .video-table {
-    background: #1c1c28;
+    background: #ffffff;
     border-radius: 12px;
     overflow: hidden;
-    border: 1px solid #2a2a3e;
+    border: 1px solid #e4e6ef;
 }
 
 /* 알림 박스 */
 .info-box {
-    background: #1a2230;
-    border: 1px solid #2a4060;
+    background: #eef2ff;
+    border: 1px solid #c7d2fe;
     border-radius: 10px;
     padding: 0.9rem 1.1rem;
-    color: #a0c0e0;
+    color: #4a5280;
     font-size: 0.85rem;
     line-height: 1.6;
     margin-bottom: 1rem;
@@ -172,21 +178,21 @@ html, body, [class*="css"] {
 
 /* 입력 필드 스타일 */
 [data-testid="stTextInput"] input {
-    background: #1c1c28 !important;
-    border: 1px solid #3a3a50 !important;
+    background: #ffffff !important;
+    border: 1px solid #d0d4e8 !important;
     border-radius: 10px !important;
-    color: #f0f0ff !important;
+    color: #1a1a2e !important;
     font-size: 0.95rem !important;
     padding: 0.6rem 0.9rem !important;
 }
 [data-testid="stTextInput"] input:focus {
-    border-color: #ff4e4e !important;
-    box-shadow: 0 0 0 3px rgba(255, 78, 78, 0.15) !important;
+    border-color: #e8302a !important;
+    box-shadow: 0 0 0 3px rgba(232, 48, 42, 0.12) !important;
 }
 
 /* 버튼 */
 .stButton > button {
-    background: linear-gradient(135deg, #ff4e4e, #ff7c4e) !important;
+    background: linear-gradient(135deg, #e8302a, #ff7c2a) !important;
     color: white !important;
     border: none !important;
     border-radius: 10px !important;
@@ -202,7 +208,7 @@ html, body, [class*="css"] {
 
 /* 구분선 */
 hr {
-    border-color: #2a2a3e !important;
+    border-color: #e4e6ef !important;
 }
 
 /* Plotly 차트 배경 */
@@ -628,13 +634,13 @@ if analyze_btn:
             )
             fig1.update_layout(
                 paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="#13131c",
-                font=dict(color="#c0c0e0", family="Noto Sans KR"),
+                plot_bgcolor="#f7f8fc",
+                font=dict(color="#2a2a40", family="Noto Sans KR"),
                 xaxis=dict(
                     tickangle=-40, tickfont=dict(size=10),
-                    gridcolor="#2a2a3e", showgrid=False,
+                    gridcolor="#e4e6ef", showgrid=False,
                 ),
-                yaxis=dict(gridcolor="#2a2a3e"),
+                yaxis=dict(gridcolor="#e4e6ef"),
                 coloraxis_showscale=False,
                 margin=dict(t=20, b=120),
                 height=380,
@@ -659,11 +665,11 @@ if analyze_btn:
             fig2.update_layout(
                 barmode="overlay",
                 paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="#13131c",
-                font=dict(color="#c0c0e0", family="Noto Sans KR"),
+                plot_bgcolor="#f7f8fc",
+                font=dict(color="#2a2a40", family="Noto Sans KR"),
                 xaxis=dict(tickangle=-40, tickfont=dict(size=10), showgrid=False),
-                yaxis=dict(gridcolor="#2a2a3e", title="수익 (USD)"),
-                legend=dict(bgcolor="rgba(0,0,0,0)"),
+                yaxis=dict(gridcolor="#e4e6ef", title="수익 (USD)"),
+                legend=dict(bgcolor="rgba(255,255,255,0.8)"),
                 margin=dict(t=20, b=120),
                 height=380,
             )
