@@ -1,66 +1,94 @@
 import streamlit as st
 import requests
-import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
+import time
 import re
 import json
+import math
+import pandas as pd
+import plotly.graph_objects as go
+from datetime import datetime, timedelta
 
-# ── 페이지 설정 ──────────────────────────────────────────────
+# ─────────────────────────────────────────────
+# 페이지 설정
+# ─────────────────────────────────────────────
 st.set_page_config(
-    page_title="유튜브 수익 분석기",
-    page_icon="📺",
+    page_title="구독자 실시간 트래커",
+    page_icon="📡",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# ── CSS ──────────────────────────────────────────────────────
+# ─────────────────────────────────────────────
+# CSS
+# ─────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Space+Grotesk:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Space+Grotesk:wght@500;600;700&display=swap');
 html, body, [class*="css"] { font-family: 'Noto Sans KR', sans-serif; }
-.stApp { background: #f7f8fc; color: #1a1a2e; }
-[data-testid="stSidebar"] { background: #ffffff !important; border-right: 1px solid #e4e6ef; }
-[data-testid="stSidebar"] * { color: #2a2a40 !important; }
-.main-header { font-family: 'Space Grotesk', sans-serif; font-size: 2.4rem; font-weight: 700; background: linear-gradient(135deg, #e8302a 0%, #ff7c2a 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 0.2rem; }
-.sub-header { color: #7878a0; font-size: 0.95rem; margin-bottom: 2rem; }
-.metric-card { background: #ffffff; border: 1px solid #e4e6ef; border-radius: 12px; padding: 1.2rem 1.4rem; margin-bottom: 0.8rem; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
-.metric-label { color: #9090b0; font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.4rem; }
-.metric-value { font-family: 'Space Grotesk', sans-serif; font-size: 1.9rem; font-weight: 700; color: #1a1a2e; line-height: 1.1; }
-.metric-sub { color: #9090b0; font-size: 0.78rem; margin-top: 0.3rem; }
-.metric-highlight { color: #e8302a; }
-.revenue-range { background: #ffffff; border: 1px solid #e4e6ef; border-radius: 14px; padding: 1.6rem; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
-.revenue-range .range-label { color: #9090b0; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.5rem; }
-.revenue-range .range-value { font-family: 'Space Grotesk', sans-serif; font-size: 2.4rem; font-weight: 700; line-height: 1; }
-.revenue-range .range-sub { color: #9090b0; font-size: 0.82rem; margin-top: 0.5rem; }
-.section-title { font-family: 'Space Grotesk', sans-serif; font-size: 1.1rem; font-weight: 600; color: #2a2a40; border-left: 3px solid #e8302a; padding-left: 0.8rem; margin: 1.6rem 0 1rem 0; }
-.channel-header { display: flex; align-items: center; gap: 1rem; background: #ffffff; border: 1px solid #e4e6ef; border-radius: 14px; padding: 1.2rem 1.6rem; margin-bottom: 1.4rem; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
-.channel-name { font-family: 'Space Grotesk', sans-serif; font-size: 1.4rem; font-weight: 700; color: #1a1a2e; }
-.channel-desc { color: #7878a0; font-size: 0.84rem; margin-top: 0.2rem; line-height: 1.5; }
-.info-box { background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 10px; padding: 0.9rem 1.1rem; color: #4a5280; font-size: 0.85rem; line-height: 1.6; margin-bottom: 1rem; }
-.warn-box { background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 0.85rem 1rem; color: #92600a; font-size: 0.82rem; line-height: 1.65; margin-bottom: 0.8rem; }
-[data-testid="stTextInput"] input { background: #ffffff !important; border: 1px solid #d0d4e8 !important; border-radius: 10px !important; color: #1a1a2e !important; font-size: 0.95rem !important; padding: 0.6rem 0.9rem !important; }
-[data-testid="stTextInput"] input:focus { border-color: #e8302a !important; box-shadow: 0 0 0 3px rgba(232,48,42,0.12) !important; }
-.stButton > button { background: linear-gradient(135deg, #e8302a, #ff7c2a) !important; color: white !important; border: none !important; border-radius: 10px !important; font-weight: 700 !important; font-size: 0.95rem !important; padding: 0.55rem 1.6rem !important; width: 100% !important; transition: opacity 0.2s !important; }
-.stButton > button:hover { opacity: 0.88 !important; }
-hr { border-color: #e4e6ef !important; }
+.stApp { background: #f4f6fb; }
+[data-testid="stSidebar"] { background: #ffffff !important; border-right: 1px solid #e2e6f0; }
+.hero-card {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
+    border-radius: 20px; padding: 2.2rem 2.4rem; color: white;
+    margin-bottom: 1.2rem; position: relative; overflow: hidden;
+}
+.hero-card::before {
+    content:''; position:absolute; top:-40px; right:-40px;
+    width:160px; height:160px;
+    background:radial-gradient(circle,rgba(99,179,237,0.18) 0%,transparent 70%);
+    border-radius:50%;
+}
+.hero-label { font-size:0.75rem; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; color:#7ecfff; margin-bottom:0.4rem; }
+.hero-number { font-family:'Space Grotesk',sans-serif; font-size:3.8rem; font-weight:700; line-height:1; letter-spacing:-0.02em; color:#ffffff; font-variant-numeric:tabular-nums; }
+.hero-sub { font-size:0.82rem; color:rgba(255,255,255,0.55); margin-top:0.5rem; }
+.delta-positive { display:inline-block; background:rgba(72,199,142,0.18); color:#48c78e; border:1px solid rgba(72,199,142,0.35); border-radius:20px; padding:0.18rem 0.8rem; font-family:'Space Grotesk',sans-serif; font-size:0.9rem; font-weight:600; margin-top:0.6rem; }
+.delta-negative { display:inline-block; background:rgba(240,82,82,0.15); color:#f05252; border:1px solid rgba(240,82,82,0.3); border-radius:20px; padding:0.18rem 0.8rem; font-family:'Space Grotesk',sans-serif; font-size:0.9rem; font-weight:600; margin-top:0.6rem; }
+.delta-zero { display:inline-block; background:rgba(160,160,180,0.15); color:#9090b0; border:1px solid rgba(160,160,180,0.3); border-radius:20px; padding:0.18rem 0.8rem; font-family:'Space Grotesk',sans-serif; font-size:0.9rem; font-weight:600; margin-top:0.6rem; }
+.stat-card { background:#ffffff; border:1px solid #e2e6f0; border-radius:14px; padding:1.1rem 1.3rem; margin-bottom:0.8rem; box-shadow:0 1px 3px rgba(0,0,0,0.05); }
+.stat-label { font-size:0.72rem; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:#a0a8c0; margin-bottom:0.35rem; }
+.stat-value { font-family:'Space Grotesk',sans-serif; font-size:1.65rem; font-weight:700; color:#1a1a2e; line-height:1.1; }
+.stat-sub { font-size:0.76rem; color:#a0a8c0; margin-top:0.25rem; }
+.ch-header { display:flex; align-items:center; gap:1rem; background:#ffffff; border:1px solid #e2e6f0; border-radius:14px; padding:1rem 1.4rem; margin-bottom:1.2rem; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
+.ch-title { font-family:'Space Grotesk',sans-serif; font-size:1.2rem; font-weight:700; color:#1a1a2e; }
+.ch-meta { font-size:0.8rem; color:#9090b0; margin-top:0.2rem; }
+.section-title { font-family:'Space Grotesk',sans-serif; font-size:1rem; font-weight:600; color:#2a2a40; border-left:3px solid #3b82f6; padding-left:0.75rem; margin:1.4rem 0 0.9rem 0; }
+.log-row { display:flex; justify-content:space-between; align-items:center; padding:0.55rem 1rem; border-bottom:1px solid #f0f2f8; font-size:0.84rem; color:#3a3a5c; }
+.log-row:last-child { border-bottom:none; }
+.log-time { color:#9090b0; font-size:0.78rem; }
+.stopped-banner { background:#fff8e7; border:1px solid #fcd34d; border-radius:10px; padding:0.7rem 1rem; color:#92600a; font-size:0.86rem; margin-bottom:1rem; text-align:center; }
+[data-testid="stTextInput"] input { background:#ffffff !important; border:1px solid #d0d6e8 !important; border-radius:10px !important; color:#1a1a2e !important; }
+[data-testid="stTextInput"] input:focus { border-color:#3b82f6 !important; box-shadow:0 0 0 3px rgba(59,130,246,0.12) !important; }
+.stButton > button { border-radius:10px !important; font-weight:700 !important; font-size:0.92rem !important; padding:0.5rem 1.4rem !important; width:100% !important; transition:opacity 0.15s !important; }
+.info-box { background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:0.85rem 1rem; color:#1e40af; font-size:0.82rem; line-height:1.65; margin-bottom:0.8rem; }
+.warn-box { background:#fffbeb; border:1px solid #fde68a; border-radius:10px; padding:0.85rem 1rem; color:#92600a; font-size:0.82rem; line-height:1.65; margin-bottom:0.8rem; }
+hr { border-color:#e2e6f0 !important; }
 </style>
 """, unsafe_allow_html=True)
 
 
-# ── 상수 ─────────────────────────────────────────────────────
-RPM_RANGES = {
-    "education":     {"low": 3.0, "mid": 6.0,  "high": 12.0},
-    "finance":       {"low": 5.0, "mid": 10.0, "high": 20.0},
-    "tech":          {"low": 3.5, "mid": 7.0,  "high": 14.0},
-    "gaming":        {"low": 1.5, "mid": 3.0,  "high": 6.0},
-    "entertainment": {"low": 1.0, "mid": 2.5,  "high": 5.0},
-    "lifestyle":     {"low": 1.5, "mid": 3.5,  "high": 7.0},
-    "news":          {"low": 2.0, "mid": 4.0,  "high": 8.0},
-    "default":       {"low": 1.5, "mid": 3.5,  "high": 7.0},
+# ─────────────────────────────────────────────
+# 세션 상태 초기화
+# ─────────────────────────────────────────────
+defaults = {
+    "tracking":       False,
+    "records":        [],      # 실제 API 스냅샷
+    "smooth_records": [],      # 보간된 표시용 기록
+    "channel_info":   None,
+    "baseline":       None,
+    "channel_url":    None,
+    "per_sec":        0.0,     # 초당 예측 증가율
+    "last_fetch_ts":  None,    # 마지막 실제 fetch 시각
+    "last_fetch_val": None,    # 마지막 실제 fetch 값
+    "start_ts":       None,
 }
-USD_TO_KRW = 1380
+for k, v in defaults.items():
+    if k not in st.session_state:
+        st.session_state[k] = v
 
+
+# ─────────────────────────────────────────────
+# 스크래핑 헬퍼
+# ─────────────────────────────────────────────
 HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -70,41 +98,21 @@ HEADERS = {
     "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8",
 }
 
+def _parse_sub(text: str) -> int:
+    text = str(text).strip()
+    # 정수 그대로
+    if text.isdigit():
+        return int(text)
+    text = text.replace(",", "").replace(" ", "")
+    # 한국어/영어 단위
+    m = re.match(r"([\d.]+)\s*([만억KkMmBb]?)", text)
+    if not m:
+        return 0
+    num  = float(m.group(1))
+    unit = m.group(2).upper()
+    mult = {"만":10_000,"억":100_000_000,"K":1_000,"M":1_000_000,"B":1_000_000_000}
+    return int(num * mult.get(unit, 1))
 
-# ── 유틸 함수 ─────────────────────────────────────────────────
-def fmt_number(n: int) -> str:
-    if n >= 100_000_000: return f"{n/100_000_000:.1f}억"
-    if n >= 10_000:      return f"{n/10_000:.1f}만"
-    return f"{n:,}"
-
-def fmt_krw(usd: float) -> str:
-    krw = usd * USD_TO_KRW
-    if krw >= 100_000_000: return f"₩{krw/100_000_000:.1f}억"
-    if krw >= 10_000:      return f"₩{krw/10_000:.0f}만"
-    return f"₩{krw:,.0f}"
-
-def estimate_revenue(views: int, rpm: dict) -> dict:
-    mv = views * 0.45
-    return {"low": mv/1000*rpm["low"], "mid": mv/1000*rpm["mid"], "high": mv/1000*rpm["high"]}
-
-def detect_category(title: str, desc: str) -> str:
-    text = (title + " " + desc).lower()
-    kw_map = {
-        "finance":       ["finance","invest","stock","crypto","money","trading","경제","투자","주식","코인","재테크"],
-        "education":     ["edu","learn","teach","study","course","강의","교육","공부","학습","튜토리얼"],
-        "tech":          ["tech","code","program","software","dev","ai","기술","코딩","개발","it"],
-        "gaming":        ["game","gaming","play","stream","게임","플레이","롤","배그","마인크래프트"],
-        "news":          ["news","뉴스","시사","정치","사회"],
-        "lifestyle":     ["vlog","life","travel","food","라이프","일상","여행","음식","요리","먹방"],
-        "entertainment": ["comedy","funny","엔터","예능","개그","코미디","드라마"],
-    }
-    for cat, kws in kw_map.items():
-        if any(k in text for k in kws):
-            return cat
-    return "default"
-
-
-# ── 스크래핑 함수 (API 키 불필요) ────────────────────────────
 def _resolve_url(query: str) -> str:
     q = query.strip()
     if q.startswith("http"):
@@ -113,444 +121,544 @@ def _resolve_url(query: str) -> str:
         return f"https://www.youtube.com/{q}"
     return f"https://www.youtube.com/@{q}"
 
-def _extract_initial_data(html: str) -> dict:
-    """ytInitialData JSON 추출"""
-    m = re.search(r"var ytInitialData\s*=\s*(\{.+?\});\s*(?:var|</script)", html, re.DOTALL)
-    if m:
-        try:
-            return json.loads(m.group(1))
-        except Exception:
-            pass
-    return {}
+def _fetch_html(url: str) -> str | None:
+    try:
+        r = requests.get(url, headers=HEADERS, timeout=12)
+        return r.text if r.status_code == 200 else None
+    except Exception:
+        return None
 
-def _parse_count_text(text: str) -> int:
-    """'104만', '1.2M', '1,040,000명' 등 → int"""
-    if not text:
-        return 0
-    text = re.sub(r"[명의\s구독자]", "", text).replace(",", "")
-    m = re.match(r"([\d.]+)\s*([만억KkMmBb]?)", text)
-    if not m:
-        return 0
-    num  = float(m.group(1))
-    unit = m.group(2).upper()
-    return int(num * {"만":10_000,"억":100_000_000,"K":1_000,"M":1_000_000,"B":1_000_000_000}.get(unit, 1))
-
-@st.cache_data(ttl=300, show_spinner=False)
 def scrape_channel(query: str) -> dict | None:
-    """채널 기본 정보 스크래핑 (구독자·총조회수·영상수·채널명·썸네일)"""
+    """채널 기본 정보 + 정밀 구독자 수 스크래핑"""
     url = _resolve_url(query)
-    for suffix in ["", "/about", "/videos"]:
-        try:
-            r = requests.get(url + suffix, headers=HEADERS, timeout=12)
-            if r.status_code != 200:
-                continue
-            html = r.text
 
-            # ── 구독자 수 ──
-            subs = 0
-            m = re.search(r'"subscriberCountText"\s*:\s*\{"simpleText"\s*:\s*"([^"]+)"', html)
-            if m:
-                subs = _parse_count_text(m.group(1))
-            if not subs:
-                m2 = re.search(r'"subscriberCount"\s*:\s*"(\d+)"', html)
-                if m2:
-                    subs = int(m2.group(1))
-
-            # ── 총 조회수 ──
-            total_views = 0
-            mv = re.search(r'"viewCountText"\s*:\s*\{"simpleText"\s*:\s*"([^"]+)"', html)
-            if mv:
-                total_views = _parse_count_text(re.sub(r"[^0-9만억KkMmBb.,]", "", mv.group(1)))
-            if not total_views:
-                mv2 = re.search(r'조회수\s*([\d,]+)', html)
-                if mv2:
-                    total_views = int(mv2.group(1).replace(",",""))
-
-            # ── 영상 수 ──
-            video_count = 0
-            mvc = re.search(r'"videoCountText"\s*:\s*\{"runs"\s*:\s*\[\{"text"\s*:\s*"(\d+)"', html)
-            if mvc:
-                video_count = int(mvc.group(1))
-
-            # ── 채널명 ──
-            title = ""
-            mt = re.search(r'"channelMetadataRenderer"\s*:\s*\{[^}]*?"title"\s*:\s*"([^"]+)"', html)
-            if mt:
-                title = mt.group(1)
-            if not title:
-                mt2 = re.search(r'<meta name="title" content="([^"]+)"', html)
-                if mt2:
-                    title = mt2.group(1)
-
-            # ── 설명 ──
-            desc = ""
-            md = re.search(r'"description"\s*:\s*"([^"]{10,200})', html)
-            if md:
-                desc = md.group(1).replace("\\n", " ")
-
-            # ── 썸네일 ──
-            thumb = ""
-            mth = re.search(r'"avatar"\s*:\s*\{"thumbnails"\s*:\s*\[\{"url"\s*:\s*"([^"]+)"', html)
-            if mth:
-                thumb = mth.group(1)
-            if not thumb:
-                mth2 = re.search(r'<link rel="image_src" href="([^"]+)"', html)
-                if mth2:
-                    thumb = mth2.group(1)
-
-            # ── 개설일 ──
-            created = ""
-            mdate = re.search(r'"joinedDateText".*?"runs".*?"text"\s*:\s*"(\d{4})', html)
-            if mdate:
-                created = mdate.group(1)
-
-            if not title and not subs:
-                continue
-
-            return {
-                "title": title or query,
-                "subs": subs,
-                "total_views": total_views,
-                "video_count": video_count,
-                "desc": desc[:120],
-                "thumb": thumb,
-                "created": created,
-                "url": url,
-            }
-        except Exception:
+    for suffix in ["", "/about", "/featured"]:
+        html = _fetch_html(url + suffix)
+        if not html:
             continue
+
+        # ── 구독자 (정밀: subscriberCount 숫자 우선) ──────────
+        subs = 0
+        # 패턴 A: 정수 그대로 ("subscriberCount":"29900000")
+        ma = re.search(r'"subscriberCount"\s*:\s*"(\d+)"', html)
+        if ma:
+            subs = int(ma.group(1))
+
+        # 패턴 B: subscriberCountText simpleText
+        if not subs:
+            mb = re.search(r'"subscriberCountText"\s*:\s*\{"simpleText"\s*:\s*"([^"]+)"', html)
+            if mb:
+                raw = mb.group(1)
+                nm  = re.search(r"([\d,]+\.?\d*)\s*([만억KkMmBb]?)", raw)
+                if nm:
+                    subs = _parse_sub(nm.group(0))
+
+        # 패턴 C: runs 배열
+        if not subs:
+            mc = re.search(r'"subscriberCountText".*?"text"\s*:\s*"([^"]+)"', html)
+            if mc:
+                subs = _parse_sub(mc.group(1))
+
+        # 패턴 D: metadataRowContents
+        if not subs:
+            md = re.search(r'구독자\s*([\d.,]+\s*[만억KkMm]?)', html)
+            if md:
+                subs = _parse_sub(md.group(1))
+
+        if not subs:
+            continue
+
+        # ── 채널명 ────────────────────────────────────────────
+        title = ""
+        mt = re.search(r'"channelMetadataRenderer"\s*:\s*\{[^}]*?"title"\s*:\s*"([^"]+)"', html)
+        if mt:
+            title = mt.group(1)
+        if not title:
+            mt2 = re.search(r'<meta name="title" content="([^"]+)"', html)
+            if mt2:
+                title = mt2.group(1)
+
+        # ── 썸네일 ────────────────────────────────────────────
+        thumb = ""
+        mth = re.search(r'"avatar"\s*:\s*\{"thumbnails"\s*:\s*\[\{"url"\s*:\s*"([^"]+)"', html)
+        if mth:
+            thumb = mth.group(1)
+        if not thumb:
+            mth2 = re.search(r'<link rel="image_src" href="([^"]+)"', html)
+            if mth2:
+                thumb = mth2.group(1)
+
+        # ── 설명 ─────────────────────────────────────────────
+        desc = ""
+        mde = re.search(r'"description"\s*:\s*"([^"]{10,160})', html)
+        if mde:
+            desc = mde.group(1).replace("\\n", " ")
+
+        # ── 총 조회수 (증가율 계산용) ─────────────────────────
+        total_views = 0
+        mvt = re.search(r'"viewCountText"\s*:\s*\{"simpleText"\s*:\s*"([^"]+)"', html)
+        if mvt:
+            total_views = _parse_sub(re.sub(r"[^0-9만억KkMmBb.,]","", mvt.group(1)))
+
+        # ── 영상 수 ───────────────────────────────────────────
+        video_cnt = 0
+        mvc = re.search(r'"videoCountText".*?"text"\s*:\s*"(\d+)"', html)
+        if mvc:
+            video_cnt = int(mvc.group(1))
+
+        return {
+            "title":       title or query,
+            "subs":        subs,
+            "total_views": total_views,
+            "video_count": video_cnt,
+            "desc":        desc[:100],
+            "thumb":       thumb,
+            "url":         url,
+        }
     return None
 
 
-@st.cache_data(ttl=300, show_spinner=False)
-def scrape_videos(channel_url: str, max_videos: int = 30) -> list[dict]:
-    """채널 /videos 페이지에서 최신 영상 목록 스크래핑"""
-    url = channel_url.rstrip("/") + "/videos"
-    try:
-        r = requests.get(url, headers=HEADERS, timeout=12)
-        if r.status_code != 200:
-            return []
-        html = r.text
-
-        # ytInitialData에서 영상 목록 추출
-        data = _extract_initial_data(html)
-        if not data:
-            return []
-
-        # 영상 아이템 탐색 (중첩 구조 순회)
-        videos = []
-        raw_str = json.dumps(data, ensure_ascii=False)
-
-        # videoRenderer 패턴으로 영상 정보 추출
-        pattern = re.compile(
-            r'"videoId"\s*:\s*"([A-Za-z0-9_-]{11})".*?'
-            r'"title"\s*:\s*\{"runs"\s*:\s*\[\{"text"\s*:\s*"([^"]+)".*?'
-            r'"viewCountText"\s*:\s*\{"simpleText"\s*:\s*"([^"]+)"',
-            re.DOTALL
-        )
-
-        seen = set()
-        for m in pattern.finditer(raw_str):
-            vid_id   = m.group(1)
-            vid_title = m.group(2)
-            view_text = m.group(3)
-            if vid_id in seen:
-                continue
-            seen.add(vid_id)
-            view_count = _parse_count_text(re.sub(r"[^0-9만억KkMmBb.,]", "", view_text))
-            videos.append({
-                "id":    vid_id,
-                "title": vid_title,
-                "views": view_count,
-                "url":   f"https://www.youtube.com/watch?v={vid_id}",
-            })
-            if len(videos) >= max_videos:
-                break
-
-        # 날짜 패턴도 보완 시도
-        date_pattern = re.compile(r'"publishedTimeText"\s*:\s*\{"simpleText"\s*:\s*"([^"]+)"')
-        dates = date_pattern.findall(raw_str)
-        for i, d in enumerate(dates[:len(videos)]):
-            videos[i]["published"] = d
-
-        return videos
-    except Exception:
-        return []
+def fetch_subs_only(channel_url: str) -> int | None:
+    """구독자 수만 빠르게 재조회"""
+    html = _fetch_html(channel_url)
+    if not html:
+        return None
+    ma = re.search(r'"subscriberCount"\s*:\s*"(\d+)"', html)
+    if ma:
+        return int(ma.group(1))
+    mb = re.search(r'"subscriberCountText"\s*:\s*\{"simpleText"\s*:\s*"([^"]+)"', html)
+    if mb:
+        nm = re.search(r"([\d,]+\.?\d*)\s*([만억KkMmBb]?)", mb.group(1))
+        if nm:
+            return _parse_sub(nm.group(0))
+    return None
 
 
-# ── 사이드바 ──────────────────────────────────────────────────
+def estimate_per_sec(subs: int, total_views: int, video_count: int) -> float:
+    """
+    구독자 수·총조회수 기반으로 '초당 구독자 증가율' 추정.
+    - 소형(<10만): 일 50~500명
+    - 중형(10만~100만): 일 200~2000명
+    - 대형(>100만): 일 1000~50000명
+    외부 데이터 없이 채널 크기 기반 휴리스틱 사용.
+    """
+    if subs <= 0:
+        return 0.0
+    # 로그 스케일로 일 증가 추정
+    # 참고: 구독자 100만 채널 평균 일 ~500~2000명 증가
+    log_s = math.log10(max(subs, 1))
+    # 기본 일 증가율 (경험적)
+    base_daily = 10 ** (log_s * 0.72 - 1.2)
+    # 조회수/구독자 비율로 보정 (활성 채널일수록 높음)
+    if subs > 0 and total_views > 0:
+        ratio = total_views / subs
+        activity = min(max(ratio / 100, 0.3), 3.0)
+        base_daily *= activity
+    daily = max(base_daily, 1.0)
+    return daily / 86400  # 초당
+
+
+# ─────────────────────────────────────────────
+# 유틸 함수
+# ─────────────────────────────────────────────
+def fmt_num(n: int) -> str:
+    if n >= 100_000_000: return f"{n/100_000_000:.2f}억"
+    if n >= 10_000:      return f"{n/10_000:.1f}만"
+    return f"{n:,}"
+
+def speed_label(per_hour: float) -> str:
+    if per_hour >= 10_000: return "🚀 폭발적 증가"
+    if per_hour >= 1_000:  return "⚡ 매우 빠름"
+    if per_hour >= 100:    return "📈 빠름"
+    if per_hour >= 10:     return "➡️ 보통"
+    if per_hour > 0:       return "🐢 느림"
+    if per_hour < 0:       return "📉 감소 중"
+    return "— 변동 없음"
+
+def calc_stats(records: list) -> dict:
+    if len(records) < 2:
+        return {}
+    df = pd.DataFrame(records)
+    df["ts"] = pd.to_datetime(df["ts"])
+    df = df.sort_values("ts")
+    delta       = df["subs"].iloc[-1] - df["subs"].iloc[0]
+    elapsed_sec = (df["ts"].iloc[-1] - df["ts"].iloc[0]).total_seconds()
+    elapsed_min = max(elapsed_sec / 60, 1e-6)
+    elapsed_hr  = max(elapsed_sec / 3600, 1e-6)
+    return {
+        "delta_total": delta,
+        "per_min":     delta / elapsed_min,
+        "per_hour":    delta / elapsed_hr,
+        "per_day":     delta / elapsed_hr * 24,
+        "elapsed_min": elapsed_min,
+        "count":       len(records),
+    }
+
+
+# ─────────────────────────────────────────────
+# 사이드바
+# ─────────────────────────────────────────────
 with st.sidebar:
     st.markdown("## ⚙️ 설정")
     st.markdown("---")
 
-    st.markdown("""
-<div class="info-box">
-✅ <b>API 키 불필요</b><br>
-유튜브 채널 페이지를 직접 파싱합니다.<br>
-별도 계정이나 API 키 없이 바로 사용 가능합니다.
-</div>
-""", unsafe_allow_html=True)
-
-    category_override = st.selectbox(
-        "카테고리 수동 지정 (선택)",
-        ["자동 감지", "교육", "금융/경제", "기술/IT", "게임", "엔터테인먼트", "라이프스타일", "뉴스/시사"],
+    channel_query = st.text_input(
+        "채널명 또는 @핸들",
+        placeholder="@MrBeast  /  긱블  /  핫소스",
     )
-    cat_map = {
-        "자동 감지": None, "교육": "education", "금융/경제": "finance",
-        "기술/IT": "tech", "게임": "gaming", "엔터테인먼트": "entertainment",
-        "라이프스타일": "lifestyle", "뉴스/시사": "news",
-    }
 
-    video_count = st.slider("분석할 최신 영상 수", 10, 50, 30, 5)
+    fetch_interval = st.select_slider(
+        "실제 갱신 주기 (API 호출)",
+        options=[30, 60, 120, 300, 600],
+        value=60,
+        format_func=lambda x: f"{x}초" if x < 60 else f"{x//60}분",
+    )
+
+    col_s, col_e = st.columns(2)
+    with col_s:
+        start_btn = st.button("▶ 시작", type="primary")
+    with col_e:
+        stop_btn  = st.button("⏹ 정지")
+
+    if st.button("🗑 기록 초기화"):
+        for k in defaults:
+            st.session_state[k] = defaults[k]
+        st.rerun()
 
     st.markdown("---")
     st.markdown("""
-<div class="warn-box">
-⚠️ <b>참고사항</b><br>
-· 구독자·조회수는 YouTube 표시 기준 근사치입니다<br>
-· 수익은 RPM 기반 추정치로 실제와 다를 수 있습니다<br>
-· YouTube 페이지 구조 변경 시 일부 데이터가 누락될 수 있습니다
-</div>
-""", unsafe_allow_html=True)
-    st.markdown("""
 <div class="info-box">
-💡 <b>수익 추정 방식</b><br>
-광고 적용률 45% × RPM 범위로 계산합니다.<br>
-카테고리별 RPM: 금융 $5~20 / 교육 $3~12 / 게임 $1.5~6
+🔑 <b>API 키 불필요</b><br>
+유튜브 채널 페이지를 직접 파싱합니다.<br>
+별도 계정이나 API 키 없이 바로 사용 가능합니다.
+</div>
+<div class="warn-box">
+⚠️ <b>왜 실시간 예측인가요?</b><br>
+YouTube는 구독자를 <b>1,000단위 근사치</b>로만 공개합니다.<br>
+예) 29,950,000명 → 29,900,000으로 표시<br><br>
+그래서 실제 스냅샷은 수십 분~수 시간에 한 번씩 바뀝니다.<br>
+이 앱은 <b>채널 크기 기반 증가율 모델</b>로 사이사이를 보간해<br>
+실시간처럼 보여줍니다.
 </div>
 """, unsafe_allow_html=True)
 
 
-# ── 메인 영역 ─────────────────────────────────────────────────
-st.markdown('<p class="main-header">📺 유튜브 수익 분석기</p>', unsafe_allow_html=True)
-st.markdown('<p class="sub-header">채널명 또는 @핸들을 입력하면 조회수 기반 수익을 추정합니다 · API 키 불필요</p>', unsafe_allow_html=True)
-
-col_input, col_btn = st.columns([4, 1])
-with col_input:
-    channel_query = st.text_input(
-        "채널명 입력",
-        placeholder="예: @MrBeast  /  긱블  /  https://youtube.com/@채널명",
-        label_visibility="collapsed",
-    )
-with col_btn:
-    analyze_btn = st.button("분석 시작 →")
-
-
-# ── 분석 실행 ─────────────────────────────────────────────────
-if analyze_btn:
+# ─────────────────────────────────────────────
+# 시작 버튼 처리
+# ─────────────────────────────────────────────
+if start_btn:
     if not channel_query:
-        st.warning("채널명을 입력해주세요.")
-        st.stop()
+        st.sidebar.warning("채널명을 입력해주세요.")
+    else:
+        with st.spinner("채널 정보 가져오는 중..."):
+            info = scrape_channel(channel_query)
+        if not info:
+            st.sidebar.error(
+                f"'{channel_query}' 채널을 찾을 수 없습니다.\n"
+                "· @핸들로 입력해보세요 (예: @채널명)\n"
+                "· 채널 URL을 직접 붙여넣기 해보세요"
+            )
+        else:
+            now   = datetime.now()
+            subs  = info["subs"]
+            per_s = estimate_per_sec(subs, info["total_views"], info["video_count"])
+            st.session_state.channel_info   = info
+            st.session_state.channel_url    = info["url"]
+            st.session_state.baseline       = subs
+            st.session_state.per_sec        = per_s
+            st.session_state.last_fetch_ts  = now
+            st.session_state.last_fetch_val = subs
+            st.session_state.start_ts       = now
+            st.session_state.records        = [{"ts": now.isoformat(), "subs": subs}]
+            st.session_state.smooth_records = [{"ts": now.isoformat(), "subs": subs}]
+            st.session_state.tracking       = True
 
-    with st.spinner("채널 정보를 가져오는 중..."):
-        channel = scrape_channel(channel_query)
+if stop_btn:
+    st.session_state.tracking = False
 
-    if not channel:
-        st.error(
-            f"'{channel_query}' 채널을 찾을 수 없습니다.\n\n"
-            "· @핸들 형식으로 입력해보세요 (예: @채널명)\n"
-            "· 채널 URL을 직접 붙여넣기 해보세요"
-        )
-        st.stop()
 
-    title       = channel["title"]
-    subs        = channel["subs"]
-    total_views = channel["total_views"]
-    video_cnt   = channel["video_count"]
-    desc        = channel["desc"]
-    thumb       = channel["thumb"]
-    created     = channel["created"]
-    ch_url      = channel["url"]
+# ─────────────────────────────────────────────
+# 메인 헤더
+# ─────────────────────────────────────────────
+st.markdown(
+    '<p style="font-family:Space Grotesk,sans-serif;font-size:2rem;font-weight:700;color:#1a1a2e;margin-bottom:0">📡 구독자 실시간 트래커</p>',
+    unsafe_allow_html=True
+)
+st.markdown(
+    '<p style="color:#9090b0;font-size:0.9rem;margin-bottom:1.5rem">API 키 없이 YouTube 채널 구독자 증감을 실시간으로 추적합니다</p>',
+    unsafe_allow_html=True
+)
 
-    # 카테고리 결정
-    cat_key = cat_map[category_override] or detect_category(title, desc)
-    rpm     = RPM_RANGES.get(cat_key, RPM_RANGES["default"])
+# 초기 안내
+if not st.session_state.tracking and not st.session_state.records:
+    st.markdown("""
+<div style="background:#ffffff;border:1px solid #e2e6f0;border-radius:16px;padding:3rem 2rem;text-align:center;color:#9090b0;box-shadow:0 1px 4px rgba(0,0,0,0.05)">
+    <div style="font-size:3rem;margin-bottom:1rem">📺</div>
+    <div style="font-family:Space Grotesk,sans-serif;font-size:1.2rem;font-weight:600;color:#3a3a5c;margin-bottom:0.5rem">
+        사이드바에서 채널을 입력하고 시작하세요
+    </div>
+    <div style="font-size:0.86rem;margin-bottom:1rem">
+        채널명, @핸들, 채널 URL 모두 지원 · <b>API 키 불필요</b>
+    </div>
+    <div style="display:inline-flex;gap:1.5rem;font-size:0.82rem;color:#6060a0">
+        <span>✅ @긱블</span><span>✅ @MrBeast</span><span>✅ https://youtube.com/@채널명</span>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+    st.stop()
 
-    # ── 채널 헤더 ──────────────────────────────────────────────
-    thumb_html = f'<img src="{thumb}" style="width:52px;height:52px;border-radius:50%;border:2px solid #e4e6ef"/>' if thumb else "📺"
-    st.markdown(f"""
-<div class="channel-header">
+
+# ─────────────────────────────────────────────
+# 트래킹 중: 실제 fetch + 보간 처리
+# ─────────────────────────────────────────────
+now = datetime.now()
+
+if st.session_state.tracking:
+    last_ts  = st.session_state.last_fetch_ts
+    last_val = st.session_state.last_fetch_val
+    elapsed  = (now - last_ts).total_seconds() if last_ts else 999
+
+    # ── 실제 YouTube 재조회 (fetch_interval마다) ──────────────
+    if elapsed >= fetch_interval:
+        new_subs = fetch_subs_only(st.session_state.channel_url)
+        if new_subs and new_subs > 0:
+            # 실제 증가분으로 per_sec 재보정
+            if elapsed > 0 and last_val:
+                real_delta  = new_subs - last_val
+                new_per_sec = real_delta / elapsed
+                # 급격한 변화는 완화 (EMA 0.3 / 0.7)
+                old_per_sec = st.session_state.per_sec
+                st.session_state.per_sec = 0.3 * new_per_sec + 0.7 * old_per_sec
+            st.session_state.last_fetch_ts  = now
+            st.session_state.last_fetch_val = new_subs
+            st.session_state.records.append({"ts": now.isoformat(), "subs": new_subs})
+
+    # ── 보간: 초당 per_sec 만큼 표시값 증가 ──────────────────
+    last_val_now = st.session_state.last_fetch_val or st.session_state.baseline
+    seconds_since_fetch = (now - st.session_state.last_fetch_ts).total_seconds() if st.session_state.last_fetch_ts else 0
+    interpolated = int(last_val_now + st.session_state.per_sec * seconds_since_fetch)
+
+    # smooth_records에 추가 (5초마다)
+    sr = st.session_state.smooth_records
+    if not sr or (now - datetime.fromisoformat(sr[-1]["ts"])).total_seconds() >= 5:
+        st.session_state.smooth_records.append({"ts": now.isoformat(), "subs": interpolated})
+
+    display_subs = interpolated
+else:
+    # 정지 상태: 마지막 실제값 표시
+    display_subs = st.session_state.last_fetch_val or (
+        st.session_state.records[-1]["subs"] if st.session_state.records else 0
+    )
+
+
+# ─────────────────────────────────────────────
+# 데이터 준비
+# ─────────────────────────────────────────────
+records  = st.session_state.records
+sr       = st.session_state.smooth_records
+info     = st.session_state.channel_info
+
+if not records or not info:
+    st.info("데이터를 수집 중입니다...")
+    st.stop()
+
+baseline         = st.session_state.baseline or display_subs
+delta_from_start = display_subs - baseline
+stats            = calc_stats(sr) if len(sr) >= 2 else {}
+
+ch_title   = info.get("title", "채널")
+ch_thumb   = info.get("thumb", "")
+ch_desc    = info.get("desc", "")[:80]
+started_at = datetime.fromisoformat(records[0]["ts"]).strftime("%H:%M:%S")
+per_s      = st.session_state.per_sec
+per_hour   = per_s * 3600
+
+
+# ─────────────────────────────────────────────
+# 채널 헤더
+# ─────────────────────────────────────────────
+thumb_html = (
+    f'<img src="{ch_thumb}" style="width:44px;height:44px;border-radius:50%;border:2px solid #e2e6f0"/>'
+    if ch_thumb else '<span style="font-size:2rem">📺</span>'
+)
+tracking_badge = (
+    '<span style="background:#dcfce7;color:#16a34a;border:1px solid #bbf7d0;border-radius:20px;padding:0.15rem 0.65rem;font-size:0.74rem;font-weight:600;margin-left:0.5rem">● 추적 중</span>'
+    if st.session_state.tracking else
+    '<span style="background:#fef9c3;color:#92600a;border:1px solid #fde68a;border-radius:20px;padding:0.15rem 0.65rem;font-size:0.74rem;font-weight:600;margin-left:0.5rem">⏸ 정지됨</span>'
+)
+st.markdown(f"""
+<div class="ch-header">
     {thumb_html}
-    <div>
-        <div class="channel-name">{title}</div>
-        <div class="channel-desc">{desc or ch_url}</div>
-        <div style="color:#9090b0;font-size:0.76rem;margin-top:0.3rem">
-            {"개설: " + created + "년  |  " if created else ""}
-            카테고리: {cat_key}  |  RPM ${ rpm['low']}~${rpm['high']}
-        </div>
+    <div style="flex:1">
+        <div class="ch-title">{ch_title} {tracking_badge}</div>
+        <div class="ch-meta">{ch_desc or st.session_state.channel_url or ""} &nbsp;|&nbsp; 추적 시작: {started_at} &nbsp;|&nbsp; 스냅샷: {len(records)}회</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-    # ── 기본 통계 ──────────────────────────────────────────────
-    st.markdown('<p class="section-title">채널 기본 통계</p>', unsafe_allow_html=True)
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.markdown(f"""
-<div class="metric-card">
-    <div class="metric-label">구독자 수</div>
-    <div class="metric-value">{fmt_number(subs) if subs else "비공개"}</div>
-    <div class="metric-sub">{f"{subs:,}명" if subs else "채널에서 비공개 설정"}</div>
-</div>""", unsafe_allow_html=True)
-    with c2:
-        st.markdown(f"""
-<div class="metric-card">
-    <div class="metric-label">총 조회수</div>
-    <div class="metric-value">{fmt_number(total_views) if total_views else "—"}</div>
-    <div class="metric-sub">{f"{total_views:,}회" if total_views else "데이터 없음"}</div>
-</div>""", unsafe_allow_html=True)
-    with c3:
-        avg_v = total_views // max(video_cnt, 1) if video_cnt and total_views else 0
-        st.markdown(f"""
-<div class="metric-card">
-    <div class="metric-label">영상 수 / 평균 조회수</div>
-    <div class="metric-value">{f"{video_cnt:,}개" if video_cnt else "—"}</div>
-    <div class="metric-sub">{f"평균 {fmt_number(avg_v)}회/영상" if avg_v else "데이터 없음"}</div>
-</div>""", unsafe_allow_html=True)
+if not st.session_state.tracking:
+    st.markdown('<div class="stopped-banner">⏸ 추적이 정지되었습니다. 사이드바에서 다시 시작할 수 있습니다.</div>', unsafe_allow_html=True)
 
-    # ── 누적 수익 추정 ─────────────────────────────────────────
-    if total_views:
-        st.markdown('<p class="section-title">누적 총 수익 추정</p>', unsafe_allow_html=True)
-        total_rev = estimate_revenue(total_views, rpm)
-        r1, r2, r3 = st.columns(3)
-        with r1:
-            st.markdown(f"""
-<div class="revenue-range">
-    <div class="range-label">🔽 보수적 추정</div>
-    <div class="range-value" style="color:#6366f1">${total_rev['low']:,.0f}</div>
-    <div class="range-sub">{fmt_krw(total_rev['low'])}</div>
-</div>""", unsafe_allow_html=True)
-        with r2:
-            st.markdown(f"""
-<div class="revenue-range">
-    <div class="range-label">⚖️ 중간 추정</div>
-    <div class="range-value" style="color:#f97316">${total_rev['mid']:,.0f}</div>
-    <div class="range-sub">{fmt_krw(total_rev['mid'])}</div>
-</div>""", unsafe_allow_html=True)
-        with r3:
-            st.markdown(f"""
-<div class="revenue-range">
-    <div class="range-label">🔼 낙관적 추정</div>
-    <div class="range-value" style="color:#22c55e">${total_rev['high']:,.0f}</div>
-    <div class="range-sub">{fmt_krw(total_rev['high'])}</div>
-</div>""", unsafe_allow_html=True)
 
-        st.markdown(f"""
-<div class="info-box" style="margin-top:0.8rem">
-    📊 적용 카테고리: <b>{cat_key}</b> &nbsp;|&nbsp; RPM 범위: <b>${rpm['low']} ~ ${rpm['high']}</b> (USD/1,000회) &nbsp;|&nbsp; 광고 적용률: <b>45%</b>
-</div>""", unsafe_allow_html=True)
+# ─────────────────────────────────────────────
+# 히어로 카드 + 스탯 카드
+# ─────────────────────────────────────────────
+left_col, right_col = st.columns([5, 4], gap="medium")
+
+with left_col:
+    if delta_from_start > 0:
+        delta_html = f'<span class="delta-positive">▲ +{delta_from_start:,} (추적 시작 이후)</span>'
+    elif delta_from_start < 0:
+        delta_html = f'<span class="delta-negative">▼ {delta_from_start:,} (추적 시작 이후)</span>'
     else:
-        st.markdown("""
-<div class="warn-box">
-⚠️ 총 조회수 데이터를 가져오지 못해 누적 수익 추정을 건너뜁니다.
-</div>""", unsafe_allow_html=True)
+        delta_html = '<span class="delta-zero">— 변동 없음 (대기 중)</span>'
 
-    # ── 최신 영상 분석 ─────────────────────────────────────────
-    st.markdown('<p class="section-title">최신 영상 성과 분석</p>', unsafe_allow_html=True)
+    refresh_ts = datetime.fromisoformat(
+        st.session_state.smooth_records[-1]["ts"]
+        if st.session_state.smooth_records else records[-1]["ts"]
+    ).strftime("%H:%M:%S")
 
-    with st.spinner(f"최신 영상 {video_count}개 불러오는 중..."):
-        videos = scrape_videos(ch_url, max_videos=video_count)
-
-    if videos:
-        rows = []
-        for v in videos:
-            rev = estimate_revenue(v["views"], rpm)
-            rows.append({
-                "제목":      v["title"][:50],
-                "게시":      v.get("published", ""),
-                "조회수":    v["views"],
-                "수익_low":  rev["low"],
-                "수익_mid":  rev["mid"],
-                "수익_high": rev["high"],
-                "url":       v["url"],
-            })
-        df = pd.DataFrame(rows)
-
-        # 평균 지표
-        avg_views    = df["조회수"].mean()
-        avg_rev_mid  = df["수익_mid"].mean()
-        monthly_est  = avg_rev_mid * 4
-
-        mc1, mc2, mc3 = st.columns(3)
-        with mc1:
-            st.markdown(f"""
-<div class="metric-card">
-    <div class="metric-label">최신 영상 평균 조회수</div>
-    <div class="metric-value metric-highlight">{fmt_number(int(avg_views))}</div>
-    <div class="metric-sub">최근 {len(df)}개 영상 기준</div>
-</div>""", unsafe_allow_html=True)
-        with mc2:
-            st.markdown(f"""
-<div class="metric-card">
-    <div class="metric-label">영상 1편당 예상 수익</div>
-    <div class="metric-value metric-highlight">${avg_rev_mid:,.0f}</div>
-    <div class="metric-sub">{fmt_krw(avg_rev_mid)} (중간 추정)</div>
-</div>""", unsafe_allow_html=True)
-        with mc3:
-            st.markdown(f"""
-<div class="metric-card">
-    <div class="metric-label">월 예상 수익 (주 1회 기준)</div>
-    <div class="metric-value metric-highlight">${monthly_est:,.0f}</div>
-    <div class="metric-sub">{fmt_krw(monthly_est)} (중간 추정)</div>
-</div>""", unsafe_allow_html=True)
-
-        # ── 차트 ──────────────────────────────────────────────
-        chart_df = df[df["조회수"] > 0].head(20).copy()
-
-        if not chart_df.empty:
-            fig1 = px.bar(
-                chart_df, x="제목", y="조회수",
-                color="조회수",
-                color_continuous_scale=["#6366f1", "#e8302a", "#f97316"],
-            )
-            fig1.update_layout(
-                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="#f7f8fc",
-                font=dict(color="#2a2a40", family="Noto Sans KR"),
-                xaxis=dict(tickangle=-40, tickfont=dict(size=10), showgrid=False),
-                yaxis=dict(gridcolor="#e4e6ef"),
-                coloraxis_showscale=False,
-                margin=dict(t=20, b=120), height=380,
-            )
-            fig1.update_traces(marker_line_width=0)
-
-            titles_short = [t[:20]+"…" if len(t)>20 else t for t in chart_df["제목"]]
-            fig2 = go.Figure()
-            fig2.add_trace(go.Bar(x=titles_short, y=chart_df["수익_high"], name="낙관",    marker_color="rgba(34,197,94,0.35)"))
-            fig2.add_trace(go.Bar(x=titles_short, y=chart_df["수익_mid"],  name="중간",    marker_color="rgba(249,115,22,0.85)"))
-            fig2.add_trace(go.Bar(x=titles_short, y=chart_df["수익_low"],  name="보수적",  marker_color="rgba(99,102,241,0.85)"))
-            fig2.update_layout(
-                barmode="overlay",
-                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="#f7f8fc",
-                font=dict(color="#2a2a40", family="Noto Sans KR"),
-                xaxis=dict(tickangle=-40, tickfont=dict(size=10), showgrid=False),
-                yaxis=dict(gridcolor="#e4e6ef", title="수익 (USD)"),
-                legend=dict(bgcolor="rgba(255,255,255,0.8)"),
-                margin=dict(t=20, b=120), height=380,
-            )
-
-            tab1, tab2 = st.tabs(["📊 영상별 조회수", "💰 영상별 수익 추정"])
-            with tab1:
-                st.plotly_chart(fig1, use_container_width=True)
-            with tab2:
-                st.plotly_chart(fig2, use_container_width=True)
-
-        # ── TOP 10 테이블 ──────────────────────────────────────
-        st.markdown('<p class="section-title">조회수 TOP 10 영상</p>', unsafe_allow_html=True)
-        top10 = df.nlargest(10, "조회수")[["제목","게시","조회수","수익_mid"]].copy()
-        top10.columns = ["제목", "게시일", "조회수", "수익 추정 (USD)"]
-        top10["조회수"]         = top10["조회수"].apply(lambda x: f"{x:,}")
-        top10["수익 추정 (USD)"] = top10["수익 추정 (USD)"].apply(lambda x: f"${x:,.0f}")
-        st.dataframe(top10, use_container_width=True, hide_index=True)
-
-    else:
-        st.info("최신 영상 데이터를 불러오지 못했습니다. 채널 URL을 직접 입력해보세요.")
-
-
-# ── 푸터 ─────────────────────────────────────────────────────
-st.markdown("---")
-st.markdown("""
-<div style="text-align:center;color:#9090b0;font-size:0.78rem;padding:0.5rem 0 1rem">
-    ⚠️ 본 수익 추정은 공개 조회수 데이터와 평균 RPM 기반의 추정치입니다.
-    실제 유튜브 수익은 다를 수 있으며 참고용으로만 활용하세요.
+    st.markdown(f"""
+<div class="hero-card">
+    <div class="hero-label">현재 구독자 수 (실시간 예측)</div>
+    <div class="hero-number">{display_subs:,}</div>
+    <div class="hero-sub">{fmt_num(display_subs)} · 갱신 {refresh_ts}</div>
+    {delta_html}
 </div>
 """, unsafe_allow_html=True)
+
+with right_col:
+    s1, s2 = st.columns(2)
+    with s1:
+        color = '#16a34a' if per_hour > 0 else '#dc2626' if per_hour < 0 else '#6b7280'
+        st.markdown(f"""
+<div class="stat-card">
+    <div class="stat-label">시간당 증감 (예측)</div>
+    <div class="stat-value" style="color:{color}">{per_hour:+,.0f}</div>
+    <div class="stat-sub">{speed_label(per_hour)}</div>
+</div>""", unsafe_allow_html=True)
+    with s2:
+        per_day = per_hour * 24
+        color2  = '#16a34a' if per_day > 0 else '#dc2626' if per_day < 0 else '#6b7280'
+        st.markdown(f"""
+<div class="stat-card">
+    <div class="stat-label">일 예상 증감</div>
+    <div class="stat-value" style="color:{color2}">{per_day:+,.0f}</div>
+    <div class="stat-sub">현재 속도 기준</div>
+</div>""", unsafe_allow_html=True)
+
+    s3, s4 = st.columns(2)
+    with s3:
+        if st.session_state.start_ts:
+            elapsed_sec = (now - st.session_state.start_ts).total_seconds()
+            elapsed_str = f"{elapsed_sec/60:.0f}분" if elapsed_sec < 3600 else f"{elapsed_sec/3600:.1f}시간"
+        else:
+            elapsed_str = "—"
+        st.markdown(f"""
+<div class="stat-card">
+    <div class="stat-label">추적 시간</div>
+    <div class="stat-value">{elapsed_str}</div>
+    <div class="stat-sub">스냅샷 {len(records)}회</div>
+</div>""", unsafe_allow_html=True)
+    with s4:
+        per_min = per_s * 60
+        st.markdown(f"""
+<div class="stat-card">
+    <div class="stat-label">분당 증감 (예측)</div>
+    <div class="stat-value">{per_min:+.1f}</div>
+    <div class="stat-sub">초당 {per_s:+.3f}명</div>
+</div>""", unsafe_allow_html=True)
+
+
+# ─────────────────────────────────────────────
+# 구독자 추이 차트 (보간 포함)
+# ─────────────────────────────────────────────
+if len(sr) >= 2:
+    st.markdown('<p class="section-title">구독자 추이 (실시간 보간)</p>', unsafe_allow_html=True)
+
+    df_s = pd.DataFrame(sr)
+    df_s["ts"]    = pd.to_datetime(df_s["ts"])
+    df_s["label"] = df_s["ts"].dt.strftime("%H:%M:%S")
+
+    # 실제 스냅샷 포인트
+    df_r = pd.DataFrame(records)
+    df_r["ts"]    = pd.to_datetime(df_r["ts"])
+    df_r["label"] = df_r["ts"].dt.strftime("%H:%M:%S")
+
+    fig = go.Figure()
+    # 보간 라인
+    fig.add_trace(go.Scatter(
+        x=df_s["label"], y=df_s["subs"],
+        mode="lines", name="예측 추이",
+        line=dict(color="#3b82f6", width=2.5, shape="spline"),
+        fill="tozeroy", fillcolor="rgba(59,130,246,0.07)",
+        hovertemplate="<b>%{x}</b><br>예측: %{y:,}<extra></extra>",
+    ))
+    # 실제 스냅샷 마커
+    if len(df_r) >= 1:
+        fig.add_trace(go.Scatter(
+            x=df_r["label"], y=df_r["subs"],
+            mode="markers", name="실제 스냅샷",
+            marker=dict(size=9, color="#f97316", symbol="circle",
+                        line=dict(width=2, color="#ffffff")),
+            hovertemplate="<b>%{x}</b><br>실제: %{y:,}<extra></extra>",
+        ))
+    fig.add_hline(
+        y=baseline, line_dash="dot", line_color="rgba(160,160,180,0.5)",
+        annotation_text=f"시작: {baseline:,}",
+        annotation_font=dict(color="#9090b0", size=11),
+    )
+    fig.update_layout(
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="#ffffff",
+        font=dict(color="#3a3a5c", family="Noto Sans KR"),
+        margin=dict(t=20, b=30, l=10, r=10), height=300,
+        xaxis=dict(showgrid=False, tickfont=dict(size=11), tickangle=-30),
+        yaxis=dict(gridcolor="#f0f2f8", tickfont=dict(size=11), tickformat=","),
+        hovermode="x unified",
+        legend=dict(bgcolor="rgba(255,255,255,0.85)", bordercolor="#e2e6f0", borderwidth=1),
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+
+# ─────────────────────────────────────────────
+# 측정 기록 로그 (실제 스냅샷만)
+# ─────────────────────────────────────────────
+if records:
+    st.markdown('<p class="section-title">실제 스냅샷 기록</p>', unsafe_allow_html=True)
+    log_rows = ""
+    for i, rec in enumerate(reversed(records[-20:])):
+        ts_str = datetime.fromisoformat(rec["ts"]).strftime("%H:%M:%S")
+        subs_v = rec["subs"]
+        idx    = len(records) - 1 - i
+        if idx > 0:
+            diff = subs_v - records[idx-1]["subs"]
+            if diff > 0:
+                diff_html = f'<span style="color:#16a34a;font-weight:600">+{diff:,}</span>'
+            elif diff < 0:
+                diff_html = f'<span style="color:#dc2626;font-weight:600">{diff:,}</span>'
+            else:
+                diff_html = '<span style="color:#9090b0">±0 (1,000단위 동일)</span>'
+        else:
+            diff_html = '<span style="color:#9090b0">기준값</span>'
+        log_rows += f"""
+<div class="log-row">
+    <span class="log-time">{ts_str}</span>
+    <span style="font-family:Space Grotesk,sans-serif;font-weight:600;color:#1a1a2e">{subs_v:,}</span>
+    <span>{diff_html}</span>
+</div>"""
+
+    st.markdown(f"""
+<div style="background:#ffffff;border:1px solid #e2e6f0;border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.04)">
+    <div style="display:flex;justify-content:space-between;padding:0.6rem 1rem;background:#f8faff;border-bottom:1px solid #e2e6f0;font-size:0.72rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:#9090b0">
+        <span>시각</span><span>구독자 수 (스냅샷)</span><span>증감</span>
+    </div>
+    {log_rows}
+</div>""", unsafe_allow_html=True)
+
+
+# ─────────────────────────────────────────────
+# 자동 새로고침 (5초마다 보간값 업데이트)
+# ─────────────────────────────────────────────
+if st.session_state.tracking:
+    time.sleep(5)
+    st.rerun()
